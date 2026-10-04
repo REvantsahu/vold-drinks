@@ -1,17 +1,52 @@
 import React, { useState } from 'react';
 import { ArrowRight, Check, Droplets, Sparkles, X, Info, Flame, Heart } from 'lucide-react';
-import { BEVERAGES } from '../data/beverages';
 import type { Beverage } from '../data/beverages';
 import { audioManager } from '../utils/audio';
+import { useCms } from '../context/CmsContext';
 
-export const CollectionSection: React.FC = () => {
-  const [activeFlavor, setActiveFlavor] = useState<Beverage>(BEVERAGES[0]);
+interface CollectionSectionProps {
+  selectedBeverageId?: string;
+  onSelectBeverage?: (id: string) => void;
+}
+
+export const CollectionSection: React.FC<CollectionSectionProps> = ({
+  selectedBeverageId,
+  onSelectBeverage,
+}) => {
+  const { cmsData } = useCms();
+  const [activeFlavor, setActiveFlavor] = useState<Beverage>(() => {
+    if (selectedBeverageId) {
+      const match = cmsData.beverages.find((b) => b.id === selectedBeverageId);
+      if (match) return match;
+    }
+    return cmsData.beverages[0];
+  });
+
   const [selectedSize, setSelectedSize] = useState<'can' | 'glass'>('can');
   const [detailModalOpen, setDetailModalOpen] = useState(false);
 
+  // Sync external selection if changed
+  React.useEffect(() => {
+    if (selectedBeverageId) {
+      const match = cmsData.beverages.find((b) => b.id === selectedBeverageId);
+      if (match) setActiveFlavor(match);
+    }
+  }, [selectedBeverageId, cmsData.beverages]);
+
   const handleSelectFlavor = (bev: Beverage) => {
     setActiveFlavor(bev);
+    if (onSelectBeverage) {
+      onSelectBeverage(bev.id);
+    }
     audioManager.playIceClink();
+  };
+
+  const handleOrderWholesale = () => {
+    const contactSection = document.getElementById('contact');
+    if (contactSection) {
+      contactSection.scrollIntoView({ behavior: 'smooth' });
+    }
+    audioManager.playFizz();
   };
 
   return (
@@ -40,11 +75,12 @@ export const CollectionSection: React.FC = () => {
 
           {/* Flavor Switcher Tabs */}
           <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-3 mt-8">
-            {BEVERAGES.map((bev) => {
+            {cmsData.beverages.map((bev) => {
               const isSelected = activeFlavor.id === bev.id;
               return (
                 <button
                   key={bev.id}
+                  type="button"
                   onClick={() => handleSelectFlavor(bev)}
                   className={`px-5 py-2.5 rounded-full text-sm font-semibold transition-all duration-300 cursor-pointer flex items-center gap-2 border ${
                     isSelected
@@ -75,7 +111,7 @@ export const CollectionSection: React.FC = () => {
                 style={{ backgroundColor: activeFlavor.accentHex }}
               />
 
-              {/* Product Graphic with subtle animation */}
+              {/* Product Graphic */}
               <div className="relative z-10 w-full max-w-sm sm:max-w-md flex items-center justify-center">
                 <img
                   src={selectedSize === 'can' ? '/images/vold-can-collection.jpg' : activeFlavor.glassImage}
@@ -87,6 +123,7 @@ export const CollectionSection: React.FC = () => {
               {/* Packaging Size Switcher */}
               <div className="absolute bottom-2 left-1/2 -translate-x-1/2 z-20 flex items-center gap-2 p-1.5 rounded-full bg-black/70 border border-white/15 backdrop-blur-md">
                 <button
+                  type="button"
                   onClick={() => {
                     setSelectedSize('can');
                     audioManager.playFizz();
@@ -100,6 +137,7 @@ export const CollectionSection: React.FC = () => {
                   330ml Can Lineup
                 </button>
                 <button
+                  type="button"
                   onClick={() => {
                     setSelectedSize('glass');
                     audioManager.playIceClink();
@@ -166,7 +204,7 @@ export const CollectionSection: React.FC = () => {
               {/* Tasting Notes */}
               <div className="w-full mb-8">
                 <span className="block text-xs uppercase tracking-wider text-neutral-400 font-semibold mb-2">
-                  Tasting Notes & Palate:
+                  Tasting Notes &amp; Palate:
                 </span>
                 <div className="flex flex-wrap gap-2">
                   {activeFlavor.tastingNotes.map((note) => (
@@ -184,20 +222,25 @@ export const CollectionSection: React.FC = () => {
               {/* Action Buttons */}
               <div className="flex flex-wrap items-center gap-4">
                 <button
-                  onClick={() => setDetailModalOpen(true)}
-                  className="inline-flex items-center gap-2 px-6 py-3 rounded-full text-sm font-bold text-black bg-lime-400 hover:bg-lime-300 transition-all cursor-pointer shadow-lg shadow-lime-400/20 transform hover:-translate-y-0.5"
+                  type="button"
+                  onClick={() => {
+                    setDetailModalOpen(true);
+                    audioManager.playIceClink();
+                  }}
+                  className="inline-flex items-center gap-2 px-6 py-3 rounded-full text-sm font-bold text-black bg-lime-400 hover:bg-lime-300 transition-all cursor-pointer shadow-lg shadow-lime-400/20 transform hover:-translate-y-0.5 active:scale-95"
                 >
                   <Info className="w-4 h-4" />
                   <span>Discover Flavor Details</span>
                 </button>
 
-                <a
-                  href="#contact"
-                  className="inline-flex items-center gap-2 px-5 py-3 rounded-full text-sm font-medium text-neutral-300 hover:text-white bg-white/5 hover:bg-white/10 border border-white/10 transition-colors"
+                <button
+                  type="button"
+                  onClick={handleOrderWholesale}
+                  className="inline-flex items-center gap-2 px-5 py-3 rounded-full text-sm font-medium text-neutral-300 hover:text-white bg-white/5 hover:bg-white/10 border border-white/10 transition-colors cursor-pointer"
                 >
                   <span>Order Samples / Wholesale</span>
                   <ArrowRight className="w-4 h-4 text-lime-400" />
-                </a>
+                </button>
               </div>
             </div>
           </div>
@@ -221,8 +264,9 @@ export const CollectionSection: React.FC = () => {
                 </h3>
               </div>
               <button
+                type="button"
                 onClick={() => setDetailModalOpen(false)}
-                className="p-2 rounded-full hover:bg-white/10 text-neutral-400 hover:text-white"
+                className="p-2 rounded-full hover:bg-white/10 text-neutral-400 hover:text-white cursor-pointer"
                 aria-label="Close flavor specifications modal"
               >
                 <X className="w-5 h-5" />
@@ -250,7 +294,7 @@ export const CollectionSection: React.FC = () => {
               </div>
 
               <div className="pt-2">
-                <h4 className="font-bold text-white mb-1">Packaging & Eco-Footprint:</h4>
+                <h4 className="font-bold text-white mb-1">Packaging &amp; Eco-Footprint:</h4>
                 <p className="text-neutral-300">
                   330ml infinitely recyclable aluminum can. BPA-NI interior protective liner. 100% plastic-free packaging box.
                 </p>
@@ -259,8 +303,9 @@ export const CollectionSection: React.FC = () => {
 
             <div className="mt-6 pt-4 border-t border-white/10 flex justify-end">
               <button
+                type="button"
                 onClick={() => setDetailModalOpen(false)}
-                className="px-6 py-2.5 rounded-full bg-lime-400 text-black font-bold text-sm"
+                className="px-6 py-2.5 rounded-full bg-lime-400 hover:bg-lime-300 text-black font-bold text-sm cursor-pointer"
               >
                 Done
               </button>

@@ -1,7 +1,10 @@
 import React from 'react';
 import { Leaf, Award, Recycle, Sun } from 'lucide-react';
+import { useCms } from '../context/CmsContext';
 
 export const BrandStorySection: React.FC = () => {
+  const { cmsData } = useCms();
+
   return (
     <section id="about" className="relative py-28 sm:py-36 bg-[#060b08] text-white overflow-hidden">
       {/* Decorative botanical backdrop elements */}
@@ -18,23 +21,23 @@ export const BrandStorySection: React.FC = () => {
             <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-lime-950/60 border border-lime-400/20 backdrop-blur-md mb-4">
               <Leaf className="w-3.5 h-3.5 text-lime-400" />
               <span className="text-xs uppercase tracking-[0.2em] font-mono text-lime-200 font-semibold">
-                Our Heritage & Craft
+                {cmsData.story.tagline}
               </span>
             </div>
 
             <h2 className="text-4xl sm:text-5xl md:text-6xl font-extrabold tracking-tight leading-[1.08] mb-6">
-              Born from Sun, Soil, <br />
+              {cmsData.story.headline.split(',')[0]}, <br />
               <span className="bg-gradient-to-r from-lime-300 via-emerald-300 to-teal-400 bg-clip-text text-transparent">
-                and Pure Cold Press.
+                {cmsData.story.headline.split(',').slice(1).join(',') || 'and Pure Cold Press.'}
               </span>
             </h2>
 
             <p className="text-base sm:text-lg text-neutral-300 leading-relaxed mb-6 font-normal">
-              VOLD was created to challenge the artificial beverage norm. For too long, carbonated drinks relied on lab-synthesized extracts, high-fructose syrups, and synthetic dyes that mask what fruit truly tastes like.
+              {cmsData.story.p1}
             </p>
 
             <p className="text-base sm:text-lg text-neutral-300 leading-relaxed mb-8 font-normal">
-              Our philosophy is simple: source only peak-ripened fruit from family-tended orchards, press it gently without destructive heat pasteurization, and blend it with mountain spring water that carries pure natural minerals.
+              {cmsData.story.p2}
             </p>
 
             {/* 3 Core Commitments */}
@@ -103,10 +106,10 @@ export const BrandStorySection: React.FC = () => {
         <div className="relative rounded-3xl overflow-hidden p-8 sm:p-14 bg-gradient-to-r from-emerald-950/60 via-black to-neutral-900 border border-white/10 text-center">
           <blockquote className="max-w-3xl mx-auto">
             <p className="text-xl sm:text-2xl md:text-3xl font-medium text-white italic leading-relaxed mb-6">
-              "We didn't invent the orange, the mango, or the mountain spring. We just refused to ruin them."
+              {cmsData.story.manifestoQuote}
             </p>
             <footer className="text-xs sm:text-sm font-mono text-lime-400 uppercase tracking-widest font-bold">
-              — The VOLD Craft Manifesto
+              {cmsData.story.manifestoAuthor}
             </footer>
           </blockquote>
         </div>

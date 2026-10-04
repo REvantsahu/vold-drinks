@@ -1,45 +1,14 @@
 import React, { useState } from 'react';
 import { Play, Sparkles, Droplets, Leaf, ShieldCheck, X } from 'lucide-react';
 import { audioManager } from '../utils/audio';
+import { useCms } from '../context/CmsContext';
 
 export const IngredientsSection: React.FC = () => {
+  const { cmsData } = useCms();
   const [videoModalOpen, setVideoModalOpen] = useState(false);
   const [activePillar, setActivePillar] = useState(0);
 
-  const pillars = [
-    {
-      title: '100% Cold-Pressed Fruit',
-      subtitle: 'Valencia Oranges & Alphonso Mangoes',
-      description: 'We extract fruit essences using gentle cold-press extraction to preserve delicate aroma compounds, bright vitamins, and real pulpy texture without heat damage.',
-      icon: Leaf,
-      metric: '24%–38%',
-      metricLabel: 'Real Fruit Juice',
-    },
-    {
-      title: 'Pure Mountain Spring Water',
-      subtitle: 'Naturally Filtered & Effervescent',
-      description: 'Sourced from high-altitude natural mineral springs and lightly carbonated to produce micro-bubbles that dance across the palate without sharpness.',
-      icon: Droplets,
-      metric: '100%',
-      metricLabel: 'Natural Mineral Base',
-    },
-    {
-      title: 'Distilled Botanical Herbs',
-      subtitle: 'Garden Spearmint & Citrus Blossoms',
-      description: 'Steam-distilled garden mint and flower blossoms give our beverages an unmistakable layered aroma and clean, crisp finish.',
-      icon: Sparkles,
-      metric: 'Pure',
-      metricLabel: 'Aromatics',
-    },
-    {
-      title: 'Zero Artificial Additives',
-      subtitle: '0g Added Sugar • Non-GMO • Vegan',
-      description: 'No preservatives, artificial colors, synthetic sweeteners, or high-fructose corn syrup. Just the authentic taste of real fruit.',
-      icon: ShieldCheck,
-      metric: '0g',
-      metricLabel: 'Added Sugars',
-    },
-  ];
+  const icons = [Leaf, Droplets, Sparkles, ShieldCheck];
 
   const handlePlayClick = () => {
     setVideoModalOpen(true);
@@ -59,37 +28,39 @@ export const IngredientsSection: React.FC = () => {
           loading="lazy"
           className="w-full h-full object-cover object-center filter brightness-[0.72] contrast-[1.1] saturate-[1.15]"
         />
-        {/* Soft water caustics overlay */}
         <div className="absolute inset-0 bg-gradient-to-b from-[#060b08]/80 via-transparent to-[#060b08]/90" />
         <div className="absolute inset-0 bg-cyan-950/20 mix-blend-color" />
       </div>
 
       <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
-        {/* Section Header matching mockup */}
+        {/* Section Header */}
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-8 mb-16">
           <div className="max-w-2xl">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-950/60 border border-cyan-400/20 backdrop-blur-md mb-3">
               <Droplets className="w-3.5 h-3.5 text-cyan-400" />
               <span className="text-xs uppercase tracking-[0.2em] font-mono text-cyan-200 font-semibold">
-                Goodness In Every Sip
+                {cmsData.ingredients.badge}
               </span>
             </div>
             
             <h2 className="text-4xl sm:text-5xl md:text-6xl font-extrabold tracking-tight text-white mb-4">
-              Natural <span className="bg-gradient-to-r from-lime-300 to-emerald-400 bg-clip-text text-transparent">Ingredients</span>
+              {cmsData.ingredients.headlinePart1}{' '}
+              <span className="bg-gradient-to-r from-lime-300 to-emerald-400 bg-clip-text text-transparent">
+                {cmsData.ingredients.headlinePart2}
+              </span>
             </h2>
 
             <p className="text-base sm:text-lg text-neutral-200/90 leading-relaxed font-normal">
-              We use the freshest fruits and natural ingredients to bring you rich flavors and pure refreshment.
-              Grown under natural sunshine, cold-pressed to perfection, and canned at the source.
+              {cmsData.ingredients.description}
             </p>
           </div>
 
-          {/* "Watch Our Story" Play Trigger matching mockup */}
+          {/* "Watch Our Story" Play Trigger */}
           <div className="flex items-center gap-4">
             <button
+              type="button"
               onClick={handlePlayClick}
-              className="group relative flex items-center gap-4 px-6 py-3.5 rounded-full bg-black/40 hover:bg-black/60 border border-white/20 hover:border-lime-400/60 backdrop-blur-md transition-all duration-300 cursor-pointer shadow-lg shadow-black/40"
+              className="group relative flex items-center gap-4 px-6 py-3.5 rounded-full bg-black/50 hover:bg-black/70 border border-white/20 hover:border-lime-400/60 backdrop-blur-md transition-all duration-300 cursor-pointer shadow-lg shadow-black/40 active:scale-95"
               aria-label="Watch Our Story Brand Film"
             >
               <div className="relative w-12 h-12 rounded-full bg-gradient-to-br from-lime-400 to-emerald-500 flex items-center justify-center text-black shadow-md shadow-lime-500/40 group-hover:scale-110 transition-transform">
@@ -106,8 +77,8 @@ export const IngredientsSection: React.FC = () => {
 
         {/* 4 Interactive Ingredient Pillars Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {pillars.map((pillar, idx) => {
-            const Icon = pillar.icon;
+          {cmsData.ingredients.pillars.map((pillar, idx) => {
+            const Icon = icons[idx % icons.length];
             const isSelected = activePillar === idx;
             return (
               <div
@@ -159,8 +130,9 @@ export const IngredientsSection: React.FC = () => {
                 </h3>
               </div>
               <button
+                type="button"
                 onClick={() => setVideoModalOpen(false)}
-                className="p-2 rounded-full hover:bg-white/10 text-neutral-400 hover:text-white transition-colors"
+                className="p-2 rounded-full hover:bg-white/10 text-neutral-400 hover:text-white transition-colors cursor-pointer"
                 aria-label="Close brand film modal"
               >
                 <X className="w-5 h-5" />
@@ -184,6 +156,13 @@ export const IngredientsSection: React.FC = () => {
                 <p className="text-sm text-neutral-300 max-w-md">
                   Experience how our local growers harvest ripe Valencia oranges and Alphonso mangoes, pressed within hours to retain natural vitality.
                 </p>
+                <button
+                  type="button"
+                  onClick={() => setVideoModalOpen(false)}
+                  className="mt-6 px-6 py-2.5 rounded-full bg-lime-400 hover:bg-lime-300 text-black font-bold text-xs uppercase tracking-wider cursor-pointer"
+                >
+                  Return to Website
+                </button>
               </div>
             </div>
           </div>

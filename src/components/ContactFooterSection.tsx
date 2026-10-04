@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
-import { Send, CheckCircle2, Mail, MapPin, Sparkles, ArrowUp } from 'lucide-react';
+import { Send, CheckCircle2, Mail, MapPin, Sparkles, ArrowUp, Sliders } from 'lucide-react';
 import { audioManager } from '../utils/audio';
 import { InstagramIcon, FacebookIcon, YoutubeIcon } from './SocialIcons';
+import { useCms } from '../context/CmsContext';
 
 export const ContactFooterSection: React.FC = () => {
+  const { cmsData, setIsDashboardOpen } = useCms();
   const [email, setEmail] = useState('');
   const [name, setName] = useState('');
   const [inquiryType, setInquiryType] = useState('consumer');
@@ -20,16 +22,16 @@ export const ContactFooterSection: React.FC = () => {
     setErrorMsg('');
     setIsSubmitting(true);
 
-    // Simulate reliable dispatch
     setTimeout(() => {
       setIsSubmitting(false);
       setIsSubmitted(true);
       audioManager.playFizz();
-    }, 800);
+    }, 700);
   };
 
   const scrollToTop = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
+    audioManager.playIceClink();
   };
 
   return (
@@ -61,13 +63,13 @@ export const ContactFooterSection: React.FC = () => {
               <div className="space-y-3 text-sm text-neutral-400 font-mono">
                 <div className="flex items-center gap-3">
                   <Mail className="w-4 h-4 text-lime-400" />
-                  <a href="mailto:hello@voldbeverages.com" className="hover:text-white transition-colors">
-                    hello@voldbeverages.com
+                  <a href={`mailto:${cmsData.contact.email}`} className="hover:text-white transition-colors">
+                    {cmsData.contact.email}
                   </a>
                 </div>
                 <div className="flex items-center gap-3">
                   <MapPin className="w-4 h-4 text-lime-400" />
-                  <span>Cold Press Artisan Facility & Distribution HQ</span>
+                  <span>{cmsData.contact.address}</span>
                 </div>
               </div>
             </div>
@@ -82,6 +84,7 @@ export const ContactFooterSection: React.FC = () => {
                     Thank you, <strong className="text-white">{name || email}</strong>. A welcome tasting guide has been dispatched to your inbox.
                   </p>
                   <button
+                    type="button"
                     onClick={() => {
                       setIsSubmitted(false);
                       setEmail('');
@@ -103,7 +106,7 @@ export const ContactFooterSection: React.FC = () => {
                         inquiryType === 'consumer' ? 'bg-lime-400 text-black shadow-sm' : 'text-neutral-400 hover:text-white'
                       }`}
                     >
-                      General & Fan Club
+                      General &amp; Fan Club
                     </button>
                     <button
                       type="button"
@@ -112,7 +115,7 @@ export const ContactFooterSection: React.FC = () => {
                         inquiryType === 'wholesale' ? 'bg-lime-400 text-black shadow-sm' : 'text-neutral-400 hover:text-white'
                       }`}
                     >
-                      Wholesale & Cafes
+                      Wholesale &amp; Cafes
                     </button>
                   </div>
 
@@ -189,7 +192,7 @@ export const ContactFooterSection: React.FC = () => {
             </p>
             <div className="flex items-center gap-3">
               <a
-                href="https://instagram.com/voldbeverages"
+                href={cmsData.contact.instagramUrl}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="p-2.5 rounded-full bg-white/5 border border-white/10 hover:border-lime-400 hover:text-lime-400 transition-colors"
@@ -198,7 +201,7 @@ export const ContactFooterSection: React.FC = () => {
                 <InstagramIcon className="w-4 h-4" />
               </a>
               <a
-                href="https://facebook.com/voldbeverages"
+                href={cmsData.contact.facebookUrl}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="p-2.5 rounded-full bg-white/5 border border-white/10 hover:border-lime-400 hover:text-lime-400 transition-colors"
@@ -207,7 +210,7 @@ export const ContactFooterSection: React.FC = () => {
                 <FacebookIcon className="w-4 h-4" />
               </a>
               <a
-                href="https://youtube.com/@voldbeverages"
+                href={cmsData.contact.youtubeUrl}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="p-2.5 rounded-full bg-white/5 border border-white/10 hover:border-lime-400 hover:text-lime-400 transition-colors"
@@ -224,10 +227,13 @@ export const ContactFooterSection: React.FC = () => {
               Drinks
             </span>
             <ul className="space-y-2 text-xs text-neutral-300">
-              <li><a href="#drinks" className="hover:text-lime-400 transition-colors">Orange Citrus</a></li>
-              <li><a href="#drinks" className="hover:text-lime-400 transition-colors">Mango Gold</a></li>
-              <li><a href="#drinks" className="hover:text-lime-400 transition-colors">Wild Strawberry</a></li>
-              <li><a href="#drinks" className="hover:text-lime-400 transition-colors">Lime Mint Cooler</a></li>
+              {cmsData.beverages.map((bev) => (
+                <li key={bev.id}>
+                  <a href="#drinks" className="hover:text-lime-400 transition-colors">
+                    {bev.name}
+                  </a>
+                </li>
+              ))}
             </ul>
           </div>
 
@@ -244,16 +250,24 @@ export const ContactFooterSection: React.FC = () => {
             </ul>
           </div>
 
-          {/* Column 4: Sourcing & Legal */}
+          {/* Column 4: Sourcing & Client Control */}
           <div>
             <span className="block text-xs font-mono uppercase tracking-wider text-neutral-400 font-bold mb-4">
-              Sustainability
+              Administration
             </span>
             <ul className="space-y-2 text-xs text-neutral-300">
               <li><span className="text-neutral-400">100% Recyclable Cans</span></li>
               <li><span className="text-neutral-400">Regenerative Orchards</span></li>
-              <li><span className="text-neutral-400">Zero Added Sugars</span></li>
-              <li><span className="text-neutral-400">Certified Non-GMO</span></li>
+              <li>
+                <button
+                  type="button"
+                  onClick={() => setIsDashboardOpen(true)}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-lime-400/20 hover:bg-lime-400 text-lime-300 hover:text-black font-semibold text-xs border border-lime-400/30 transition-all cursor-pointer mt-1"
+                >
+                  <Sliders className="w-3.5 h-3.5" />
+                  <span>Client CMS Portal</span>
+                </button>
+              </li>
             </ul>
           </div>
         </div>
@@ -270,15 +284,26 @@ export const ContactFooterSection: React.FC = () => {
             <span className="text-lime-400 font-semibold">Revant Sahu</span>
           </div>
 
-          {/* Back to top */}
-          <button
-            onClick={scrollToTop}
-            className="flex items-center gap-1.5 text-neutral-400 hover:text-white transition-colors cursor-pointer"
-            aria-label="Scroll back to top"
-          >
-            <span>Back to top</span>
-            <ArrowUp className="w-3.5 h-3.5 text-lime-400" />
-          </button>
+          {/* Back to top & CMS quick trigger */}
+          <div className="flex items-center gap-4">
+            <button
+              type="button"
+              onClick={() => setIsDashboardOpen(true)}
+              className="text-neutral-400 hover:text-lime-400 transition-colors cursor-pointer text-xs flex items-center gap-1 font-mono"
+            >
+              <Sliders className="w-3 h-3 text-lime-400" />
+              <span>Edit Site</span>
+            </button>
+            <button
+              type="button"
+              onClick={scrollToTop}
+              className="flex items-center gap-1.5 text-neutral-400 hover:text-white transition-colors cursor-pointer"
+              aria-label="Scroll back to top"
+            >
+              <span>Back to top</span>
+              <ArrowUp className="w-3.5 h-3.5 text-lime-400" />
+            </button>
+          </div>
         </div>
 
       </div>

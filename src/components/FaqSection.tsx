@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { HelpCircle, ChevronDown } from 'lucide-react';
-import { FAQS } from '../data/beverages';
 import { audioManager } from '../utils/audio';
+import { useCms } from '../context/CmsContext';
 
 export const FaqSection: React.FC = () => {
+  const { cmsData } = useCms();
   const [openIndex, setOpenIndex] = useState<number | null>(0);
 
   const toggleFaq = (idx: number) => {
@@ -33,11 +34,11 @@ export const FaqSection: React.FC = () => {
 
         {/* Accordion List */}
         <div className="space-y-4">
-          {FAQS.map((faq, idx) => {
+          {cmsData.faqs.map((faq, idx) => {
             const isOpen = openIndex === idx;
             return (
               <div
-                key={faq.question}
+                key={idx}
                 className={`rounded-2xl border transition-all duration-300 overflow-hidden ${
                   isOpen
                     ? 'bg-neutral-900/90 border-lime-400/40 shadow-lg shadow-lime-950/20'

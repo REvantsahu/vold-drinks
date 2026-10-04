@@ -1,28 +1,44 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { ArrowRight, Sparkles } from 'lucide-react';
-import { BEVERAGES } from '../data/beverages';
 import type { Beverage } from '../data/beverages';
 import { audioManager } from '../utils/audio';
 import { HeroInteractiveCanvas } from './HeroInteractiveCanvas';
 import { InstagramIcon, FacebookIcon, YoutubeIcon } from './SocialIcons';
+import { useCms } from '../context/CmsContext';
 
 interface HeroSectionProps {
   onExploreClick: () => void;
   onStoryClick: () => void;
+  selectedBeverageId?: string;
+  onSelectBeverage?: (id: string) => void;
 }
 
-export const HeroSection: React.FC<HeroSectionProps> = ({ onExploreClick, onStoryClick }) => {
-  const [selectedBeverage, setSelectedBeverage] = useState<Beverage>(BEVERAGES[0]);
+export const HeroSection: React.FC<HeroSectionProps> = ({
+  onExploreClick,
+  onStoryClick,
+  selectedBeverageId,
+  onSelectBeverage,
+}) => {
+  const { cmsData } = useCms();
+  const [internalBev, setInternalBev] = useState<Beverage>(cmsData.beverages[0]);
   const [tilt, setTilt] = useState({ x: 0, y: 0 });
   const containerRef = useRef<HTMLDivElement>(null);
+
+  // Sync external selected ID if provided
+  useEffect(() => {
+    if (selectedBeverageId) {
+      const match = cmsData.beverages.find((b) => b.id === selectedBeverageId);
+      if (match) setInternalBev(match);
+    }
+  }, [selectedBeverageId, cmsData.beverages]);
 
   // Mouse tilt effect for 3D glass interaction
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
-      if (window.innerWidth < 768) return; // Disable expensive 3D on small mobile screens
+      if (window.innerWidth < 768) return;
       const { innerWidth, innerHeight } = window;
-      const x = (e.clientX / innerWidth - 0.5) * 16; // -8 to 8 deg
-      const y = (e.clientY / innerHeight - 0.5) * -16; // -8 to 8 deg
+      const x = (e.clientX / innerWidth - 0.5) * 16;
+      const y = (e.clientY / innerHeight - 0.5) * -16;
       setTilt({ x, y });
     };
 
@@ -31,9 +47,14 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onExploreClick, onStor
   }, []);
 
   const handleFlavorSelect = (bev: Beverage) => {
-    setSelectedBeverage(bev);
+    setInternalBev(bev);
+    if (onSelectBeverage) {
+      onSelectBeverage(bev.id);
+    }
     audioManager.playIceClink();
   };
+
+  const selectedBeverage = internalBev || cmsData.beverages[0];
 
   return (
     <section
@@ -73,7 +94,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onExploreClick, onStor
       {/* Layer 2: Left Vertical Social Icons */}
       <div className="hidden lg:flex fixed left-6 top-1/2 -translate-y-1/2 z-30 flex-col items-center gap-5 text-neutral-300">
         <a
-          href="https://instagram.com/voldbeverages"
+          href={cmsData.contact.instagramUrl}
           target="_blank"
           rel="noopener noreferrer"
           className="p-2.5 rounded-full bg-black/30 border border-white/10 hover:border-lime-400 hover:text-lime-400 hover:scale-110 transition-all backdrop-blur-md"
@@ -82,7 +103,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onExploreClick, onStor
           <InstagramIcon className="w-4 h-4" />
         </a>
         <a
-          href="https://facebook.com/voldbeverages"
+          href={cmsData.contact.facebookUrl}
           target="_blank"
           rel="noopener noreferrer"
           className="p-2.5 rounded-full bg-black/30 border border-white/10 hover:border-lime-400 hover:text-lime-400 hover:scale-110 transition-all backdrop-blur-md"
@@ -91,7 +112,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onExploreClick, onStor
           <FacebookIcon className="w-4 h-4" />
         </a>
         <a
-          href="https://youtube.com/@voldbeverages"
+          href={cmsData.contact.youtubeUrl}
           target="_blank"
           rel="noopener noreferrer"
           className="p-2.5 rounded-full bg-black/30 border border-white/10 hover:border-lime-400 hover:text-lime-400 hover:scale-110 transition-all backdrop-blur-md"
@@ -105,25 +126,31 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onExploreClick, onStor
       {/* Layer 3: Right Vertical Section Progress Indicator (01 - 05) */}
       <div className="hidden lg:flex fixed right-8 top-1/2 -translate-y-1/2 z-30 flex-col items-center gap-4 text-xs font-mono">
         {[
-          { num: '01', active: true },
-          { num: '02', active: false },
-          { num: '03', active: false },
-          { num: '04', active: false },
-          { num: '05', active: false },
+          { num: '01', target: 'hero' },
+          { num: '02', target: 'ingredients' },
+          { num: '03', target: 'drinks' },
+          { num: '04', target: 'flavors' },
+          { num: '05', target: 'contact' },
         ].map((item, idx) => (
-          <div key={item.num} className="flex items-center gap-2 group cursor-pointer">
-            <span className={`transition-colors ${item.active ? 'text-lime-400 font-bold' : 'text-neutral-500'}`}>
+          <button
+            key={item.num}
+            onClick={() => {
+              const el = document.getElementById(item.target);
+              if (el) el.scrollIntoView({ behavior: 'smooth' });
+            }}
+            className="flex items-center gap-2 group cursor-pointer focus:outline-none"
+          >
+            <span className={`transition-colors ${idx === 0 ? 'text-lime-400 font-bold' : 'text-neutral-500 group-hover:text-neutral-300'}`}>
               {item.num}
             </span>
             <div
               className={`w-2 h-2 rounded-full transition-all ${
-                item.active
+                idx === 0
                   ? 'bg-lime-400 ring-4 ring-lime-400/25 scale-125'
                   : 'bg-neutral-600 group-hover:bg-neutral-400'
               }`}
             />
-            {idx < 4 && <div className="absolute w-[1px] h-4 bg-white/10" />}
-          </div>
+          </button>
         ))}
       </div>
 
@@ -137,16 +164,16 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onExploreClick, onStor
             <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-black/40 border border-white/15 backdrop-blur-md mb-4 shadow-sm">
               <span className="w-2 h-2 rounded-full bg-lime-400 animate-ping" />
               <span className="text-xs uppercase tracking-[0.22em] text-neutral-200 font-semibold font-mono">
-                Pure Taste. Real Refreshment.
+                {cmsData.hero.tagline}
               </span>
             </div>
 
             {/* Main Editorial Headline with Leaf Mark */}
             <div className="relative mb-5">
               <h1 className="text-5xl sm:text-6xl md:text-7xl font-extrabold tracking-tight leading-[1.04] text-white">
-                Refresh
+                {cmsData.hero.headlinePart1}
                 <span className="inline-block relative text-lime-400 ml-1">
-                  {/* Decorative Leaf Icon sitting gracefully on the typography */}
+                  {/* Decorative Leaf Icon */}
                   <svg
                     className="absolute -top-6 -right-5 sm:-top-7 sm:-right-6 w-9 h-9 sm:w-11 sm:h-11 text-lime-400 filter drop-shadow-[0_2px_8px_rgba(132,204,22,0.6)] animate-float-slow"
                     viewBox="0 0 24 24"
@@ -157,47 +184,49 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onExploreClick, onStor
                 </span>
                 <br />
                 <span className="bg-gradient-to-r from-white via-neutral-100 to-lime-200 bg-clip-text text-transparent">
-                  Your World
+                  {cmsData.hero.headlinePart2}
                 </span>
               </h1>
             </div>
 
             {/* Supporting Copy */}
             <p className="text-base sm:text-lg text-neutral-200/90 font-normal leading-relaxed max-w-md mb-8 drop-shadow-sm">
-              Delicious, natural and refreshing beverages made for every moment of your day. 
-              Infused with cold-pressed real fruit and sparkling mountain spring water.
+              {cmsData.hero.description}
             </p>
 
             {/* CTAs */}
             <div className="flex flex-wrap items-center gap-4 mb-10">
               <button
+                type="button"
                 onClick={onExploreClick}
                 className="group inline-flex items-center gap-3 px-7 py-3.5 rounded-full text-base font-semibold text-white bg-black/60 hover:bg-black/80 border border-lime-500/40 hover:border-lime-400 backdrop-blur-md shadow-[0_4px_25px_rgba(132,204,22,0.25)] hover:shadow-[0_6px_30px_rgba(132,204,22,0.45)] transition-all duration-300 transform hover:-translate-y-0.5 cursor-pointer"
               >
-                <span>Explore Our Drinks</span>
+                <span>{cmsData.hero.primaryCtaText}</span>
                 <ArrowRight className="w-4 h-4 text-lime-400 group-hover:translate-x-1.5 transition-transform" />
               </button>
 
               <button
+                type="button"
                 onClick={onStoryClick}
                 className="inline-flex items-center gap-2 px-5 py-3.5 rounded-full text-sm font-medium text-neutral-300 hover:text-white bg-white/5 hover:bg-white/10 border border-white/10 backdrop-blur-md transition-all cursor-pointer"
               >
-                <span>Discover Our Story</span>
+                <span>{cmsData.hero.secondaryCtaText}</span>
               </button>
             </div>
 
-            {/* Flavor Selector Dock (4 Cards) */}
+            {/* Flavor Selector Dock */}
             <div className="w-full">
               <div className="text-xs uppercase tracking-wider text-neutral-400 font-semibold mb-2.5 flex items-center gap-2">
                 <Sparkles className="w-3.5 h-3.5 text-lime-400" />
                 <span>Select Signature Flavor:</span>
               </div>
               <div className="grid grid-cols-4 gap-2.5 sm:gap-3 max-w-md">
-                {BEVERAGES.map((bev) => {
+                {cmsData.beverages.map((bev) => {
                   const isSelected = selectedBeverage.id === bev.id;
                   return (
                     <button
                       key={bev.id}
+                      type="button"
                       onClick={() => handleFlavorSelect(bev)}
                       className={`group relative flex flex-col items-center p-2 rounded-2xl transition-all duration-300 cursor-pointer text-center ${
                         isSelected
@@ -205,10 +234,9 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onExploreClick, onStor
                           : 'bg-black/35 border border-white/10 hover:border-white/30 hover:bg-black/50'
                       }`}
                     >
-                      {/* Thumbnail Container */}
                       <div className="w-12 h-14 sm:w-14 sm:h-16 rounded-xl overflow-hidden mb-1.5 bg-black/40 flex items-center justify-center p-0.5 relative">
                         <img
-                          src={bev.thumbImage}
+                          src={bev.thumbImage || bev.glassImage}
                           alt={bev.name}
                           className="w-full h-full object-cover rounded-lg group-hover:scale-110 transition-transform duration-300"
                           onError={(e) => {
@@ -221,7 +249,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onExploreClick, onStor
                           isSelected ? 'text-lime-300 font-bold' : 'text-neutral-300 group-hover:text-white'
                         }`}
                       >
-                        {bev.id === 'lemon-mint' ? 'Lemon Mint' : bev.name.split(' ')[1]}
+                        {bev.id === 'lemon-mint' ? 'Lemon Mint' : bev.name.split(' ')[1] || bev.name}
                       </span>
                     </button>
                   );
@@ -232,7 +260,6 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onExploreClick, onStor
 
           {/* Center Column: The Signature 3D Interactive Beverage Centerpiece */}
           <div className="lg:col-span-7 relative flex items-center justify-center min-h-[440px] sm:min-h-[520px] lg:min-h-[620px]">
-            {/* Parallax Container with 3D Tilt */}
             <div
               className="relative w-full max-w-[420px] sm:max-w-[480px] lg:max-w-[540px] flex items-center justify-center transition-transform duration-300 ease-out"
               style={{
@@ -266,13 +293,16 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onExploreClick, onStor
                 </div>
               </div>
 
-              {/* Playful Handwritten Script on the right: "Good Drinks Brighter Days!" with Sun Doodle */}
+              {/* Playful Handwritten Script with Sun Doodle */}
               <div className="absolute -right-2 sm:-right-8 top-16 sm:top-20 z-20 pointer-events-none transform rotate-3 hidden sm:block">
                 <div className="flex items-start gap-2">
                   <div className="text-right">
                     <p className="font-script text-2xl sm:text-3xl text-white font-bold leading-none drop-shadow-[0_2px_8px_rgba(0,0,0,0.7)]">
-                      Good<br />Drinks<br />
-                      <span className="text-amber-300">Brighter<br />Days!</span>
+                      {cmsData.hero.handwrittenNote.split(' ')[0] || 'Good'}<br />
+                      {cmsData.hero.handwrittenNote.split(' ')[1] || 'Drinks'}<br />
+                      <span className="text-amber-300">
+                        {cmsData.hero.handwrittenNote.split(' ').slice(2).join(' ') || 'Brighter Days!'}
+                      </span>
                     </p>
                   </div>
                   {/* Sun doodle SVG */}
@@ -294,7 +324,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onExploreClick, onStor
         </div>
       </div>
 
-      {/* Bottom Scroll Indicator matching mockup */}
+      {/* Bottom Scroll Indicator */}
       <div className="absolute bottom-5 right-8 z-20 hidden md:flex items-center gap-3 pointer-events-none text-white/80">
         <div className="w-5 h-8 rounded-full border-2 border-white/40 flex items-start justify-center p-1">
           <div className="w-1 h-2 bg-lime-400 rounded-full animate-bounce" />
