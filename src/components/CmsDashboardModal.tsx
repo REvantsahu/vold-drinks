@@ -13,8 +13,16 @@ import {
   Plus,
   Trash2,
   Sliders,
+  Lock,
+  Unlock,
+  Key,
+  Eye,
+  EyeOff,
+  ShieldCheck,
+  LogOut,
 } from 'lucide-react';
 import { useCms } from '../context/CmsContext';
+import { audioManager } from '../utils/audio';
 
 export const CmsDashboardModal: React.FC = () => {
   const {
@@ -25,20 +33,152 @@ export const CmsDashboardModal: React.FC = () => {
     importJson,
     isDashboardOpen,
     setIsDashboardOpen,
+    isAuthenticated,
+    login,
+    logout,
+    changePassword,
   } = useCms();
 
+  // Password Login State
+  const [passwordInput, setPasswordInput] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [loginError, setLoginError] = useState(false);
+
+  // Tab State
   const [activeTab, setActiveTab] = useState<
-    'hero' | 'beverages' | 'ingredients' | 'story' | 'faqs' | 'contact'
+    'hero' | 'beverages' | 'ingredients' | 'story' | 'faqs' | 'contact' | 'security'
   >('hero');
 
   const [selectedBevIndex, setSelectedBevIndex] = useState(0);
   const [saveToast, setSaveToast] = useState(false);
+
+  // Change Password Form State
+  const [newPass, setNewPass] = useState('');
+  const [confirmPass, setConfirmPass] = useState('');
+  const [passChangeSuccess, setPassChangeSuccess] = useState(false);
+  const [passChangeError, setPassChangeError] = useState('');
 
   if (!isDashboardOpen) return null;
 
   const showSaveSuccess = () => {
     setSaveToast(true);
     setTimeout(() => setSaveToast(false), 2000);
+  };
+
+  const handleLoginSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const success = login(passwordInput);
+    if (success) {
+      setLoginError(false);
+      setPasswordInput('');
+      audioManager.playIceClink();
+    } else {
+      setLoginError(true);
+      audioManager.playFizz();
+    }
+  };
+
+  // If not authenticated, render the Secure Password Gate
+  if (!isAuthenticated) {
+    return (
+      <div
+        role="dialog"
+        aria-modal="true"
+        className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/90 backdrop-blur-2xl animate-fadeIn select-none"
+      >
+        <div className="relative w-full max-w-md bg-[#0a110d] border border-white/20 rounded-3xl p-8 shadow-2xl text-center">
+          {/* Close button */}
+          <button
+            type="button"
+            onClick={() => setIsDashboardOpen(false)}
+            className="absolute top-5 right-5 p-2 rounded-full hover:bg-white/10 text-neutral-400 hover:text-white transition-colors cursor-pointer"
+            aria-label="Close"
+          >
+            <X className="w-5 h-5" />
+          </button>
+
+          {/* Shield Lock Icon */}
+          <div className="w-16 h-16 rounded-2xl bg-lime-400/10 border border-lime-400/30 text-lime-400 flex items-center justify-center mx-auto mb-5 shadow-lg shadow-lime-950/40">
+            <Lock className="w-8 h-8" />
+          </div>
+
+          <h3 className="text-xl font-extrabold text-white mb-1">
+            Client CMS Access
+          </h3>
+          <p className="text-xs text-neutral-400 mb-6 max-w-xs mx-auto">
+            This dashboard is restricted to the brand owner. Enter your administrative passcode to unlock.
+          </p>
+
+          <form onSubmit={handleLoginSubmit} className="space-y-4">
+            <div className="relative">
+              <input
+                type={showPassword ? 'text' : 'password'}
+                autoFocus
+                required
+                value={passwordInput}
+                onChange={(e) => {
+                  setPasswordInput(e.target.value);
+                  setLoginError(false);
+                }}
+                placeholder="Enter password..."
+                className={`w-full px-4 py-3.5 pr-12 rounded-xl bg-black/70 border text-white text-sm focus:outline-none transition-colors ${
+                  loginError
+                    ? 'border-rose-500 focus:border-rose-400 ring-1 ring-rose-500'
+                    : 'border-white/15 focus:border-lime-400'
+                }`}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3.5 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-white p-1"
+                aria-label="Toggle password visibility"
+              >
+                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
+            </div>
+
+            {loginError && (
+              <p className="text-xs text-rose-400 font-semibold animate-shake">
+                Incorrect passcode. Try again.
+              </p>
+            )}
+
+            <button
+              type="submit"
+              className="w-full py-3.5 px-6 rounded-xl bg-lime-400 hover:bg-lime-300 text-black font-bold text-sm tracking-wide transition-all shadow-lg shadow-lime-400/20 flex items-center justify-center gap-2 cursor-pointer"
+            >
+              <Unlock className="w-4 h-4" />
+              <span>Unlock Content Dashboard</span>
+            </button>
+
+            <div className="pt-2">
+              <span className="text-[11px] text-neutral-400 font-mono">
+                Initial default passcode: <strong className="text-lime-300">vold</strong>
+              </span>
+            </div>
+          </form>
+        </div>
+      </div>
+    );
+  }
+
+  // Handle password change inside dashboard
+  const handleChangePasswordSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newPass || newPass.length < 3) {
+      setPassChangeError('Password must be at least 3 characters.');
+      return;
+    }
+    if (newPass !== confirmPass) {
+      setPassChangeError('Passwords do not match.');
+      return;
+    }
+    changePassword(newPass);
+    setPassChangeError('');
+    setPassChangeSuccess(true);
+    setNewPass('');
+    setConfirmPass('');
+    setTimeout(() => setPassChangeSuccess(false), 3000);
   };
 
   const handleHeroChange = (field: keyof typeof cmsData.hero, val: string) => {
@@ -49,10 +189,7 @@ export const CmsDashboardModal: React.FC = () => {
     showSaveSuccess();
   };
 
-  const handleBeverageFieldChange = (
-    field: string,
-    val: string | string[]
-  ) => {
+  const handleBeverageFieldChange = (field: string, val: string | string[]) => {
     updateCmsData((prev) => {
       const updated = [...prev.beverages];
       updated[selectedBevIndex] = {
@@ -64,10 +201,7 @@ export const CmsDashboardModal: React.FC = () => {
     showSaveSuccess();
   };
 
-  const handleIngredientsChange = (
-    field: keyof typeof cmsData.ingredients,
-    val: unknown
-  ) => {
+  const handleIngredientsChange = (field: keyof typeof cmsData.ingredients, val: unknown) => {
     updateCmsData((prev) => ({
       ...prev,
       ingredients: { ...prev.ingredients, [field]: val },
@@ -83,10 +217,7 @@ export const CmsDashboardModal: React.FC = () => {
     showSaveSuccess();
   };
 
-  const handleContactChange = (
-    field: keyof typeof cmsData.contact,
-    val: string
-  ) => {
+  const handleContactChange = (field: keyof typeof cmsData.contact, val: string) => {
     updateCmsData((prev) => ({
       ...prev,
       contact: { ...prev.contact, [field]: val },
@@ -109,11 +240,7 @@ export const CmsDashboardModal: React.FC = () => {
     showSaveSuccess();
   };
 
-  const handleFaqChange = (
-    index: number,
-    field: 'question' | 'answer' | 'category',
-    val: string
-  ) => {
+  const handleFaqChange = (index: number, field: 'question' | 'answer' | 'category', val: string) => {
     updateCmsData((prev) => {
       const updated = [...prev.faqs];
       updated[index] = { ...updated[index], [field]: val };
@@ -167,12 +294,13 @@ export const CmsDashboardModal: React.FC = () => {
             <div>
               <h2 className="text-base sm:text-lg font-bold text-white flex items-center gap-2">
                 <span>VOLD Client CMS &amp; Content Control</span>
-                <span className="text-[10px] uppercase font-mono px-2 py-0.5 rounded-full bg-lime-400/20 text-lime-300 border border-lime-400/30">
-                  Live Sync
+                <span className="text-[10px] uppercase font-mono px-2 py-0.5 rounded-full bg-lime-400/20 text-lime-300 border border-lime-400/30 flex items-center gap-1">
+                  <ShieldCheck className="w-3 h-3 text-lime-400" />
+                  <span>Unlocked</span>
                 </span>
               </h2>
               <p className="text-xs text-neutral-400">
-                Edit website headlines, drinks, images, buttons, and links in real time.
+                Live changes save automatically in your browser and persist across reloads.
               </p>
             </div>
           </div>
@@ -217,6 +345,16 @@ export const CmsDashboardModal: React.FC = () => {
               <span className="hidden sm:inline">Reset</span>
             </button>
 
+            {/* Logout / Lock Button */}
+            <button
+              onClick={logout}
+              className="p-2 sm:px-3 sm:py-1.5 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/20 text-xs font-semibold text-amber-300 flex items-center gap-1.5 cursor-pointer"
+              title="Lock CMS and log out"
+            >
+              <LogOut className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Lock</span>
+            </button>
+
             <button
               onClick={() => setIsDashboardOpen(false)}
               className="p-2 rounded-xl bg-lime-400 hover:bg-lime-300 text-black font-bold transition-transform hover:scale-105 cursor-pointer ml-1"
@@ -236,6 +374,7 @@ export const CmsDashboardModal: React.FC = () => {
             { id: 'story', name: 'Brand Story', icon: FileText },
             { id: 'faqs', name: 'FAQ Manager', icon: HelpCircle },
             { id: 'contact', name: 'Contact & Social', icon: Mail },
+            { id: 'security', name: 'Security & Password', icon: Key },
           ].map((tab) => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
@@ -377,7 +516,6 @@ export const CmsDashboardModal: React.FC = () => {
           {/* TAB 2: BEVERAGES & FLAVORS */}
           {activeTab === 'beverages' && (
             <div className="space-y-6 max-w-4xl">
-              {/* Flavor Selector */}
               <div className="flex gap-2">
                 {cmsData.beverages.map((bev, idx) => (
                   <button
@@ -809,6 +947,81 @@ export const CmsDashboardModal: React.FC = () => {
                     className="w-full px-4 py-2.5 rounded-xl bg-black/60 border border-white/15 text-white text-sm"
                   />
                 </div>
+              </div>
+            </div>
+          )}
+
+          {/* TAB 7: SECURITY & PASSWORD SETTINGS */}
+          {activeTab === 'security' && (
+            <div className="space-y-5 max-w-xl">
+              <div className="p-5 rounded-2xl bg-white/5 border border-white/10 space-y-4">
+                <div className="flex items-center gap-3">
+                  <div className="p-2.5 rounded-xl bg-amber-400/10 text-amber-400 border border-amber-400/30">
+                    <Key className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-bold text-white uppercase tracking-wider font-mono">
+                      Change Admin Passcode
+                    </h3>
+                    <p className="text-xs text-neutral-400">
+                      Update the security password required to unlock this dashboard.
+                    </p>
+                  </div>
+                </div>
+
+                <form onSubmit={handleChangePasswordSubmit} className="space-y-4 pt-2">
+                  <div>
+                    <label className="block text-xs font-mono uppercase text-neutral-400 mb-1">
+                      New Passcode
+                    </label>
+                    <input
+                      type="password"
+                      required
+                      value={newPass}
+                      onChange={(e) => setNewPass(e.target.value)}
+                      placeholder="Enter new password..."
+                      className="w-full px-4 py-2.5 rounded-xl bg-black/60 border border-white/15 text-white text-sm focus:border-lime-400 focus:outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-mono uppercase text-neutral-400 mb-1">
+                      Confirm New Passcode
+                    </label>
+                    <input
+                      type="password"
+                      required
+                      value={confirmPass}
+                      onChange={(e) => setConfirmPass(e.target.value)}
+                      placeholder="Confirm new password..."
+                      className="w-full px-4 py-2.5 rounded-xl bg-black/60 border border-white/15 text-white text-sm focus:border-lime-400 focus:outline-none"
+                    />
+                  </div>
+
+                  {passChangeError && (
+                    <p className="text-xs text-rose-400 font-semibold">{passChangeError}</p>
+                  )}
+
+                  {passChangeSuccess && (
+                    <p className="text-xs text-lime-400 font-semibold flex items-center gap-1">
+                      <Check className="w-3.5 h-3.5" /> Passcode updated successfully!
+                    </p>
+                  )}
+
+                  <button
+                    type="submit"
+                    className="px-6 py-2.5 rounded-xl bg-lime-400 hover:bg-lime-300 text-black font-bold text-xs uppercase tracking-wider transition-all cursor-pointer shadow-md"
+                  >
+                    Save New Password
+                  </button>
+                </form>
+              </div>
+
+              <div className="p-4 rounded-2xl bg-neutral-900/50 border border-white/5 text-xs text-neutral-400 space-y-2">
+                <span className="font-bold text-white block">Keyboard Shortcut Access:</span>
+                <p>
+                  Press <kbd className="px-2 py-0.5 rounded bg-white/10 font-mono text-white text-[11px]">Ctrl + Shift + A</kbd> (or <kbd className="px-2 py-0.5 rounded bg-white/10 font-mono text-white text-[11px]">Cmd + Shift + A</kbd>) from anywhere on the website to quickly toggle this admin screen.
+                </p>
               </div>
             </div>
           )}

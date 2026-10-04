@@ -43,6 +43,9 @@ export interface CmsData {
     facebookUrl: string;
     youtubeUrl: string;
   };
+  security: {
+    adminPassword: string;
+  };
 }
 
 export const DEFAULT_CMS_DATA: CmsData = {
@@ -108,6 +111,9 @@ export const DEFAULT_CMS_DATA: CmsData = {
     facebookUrl: 'https://facebook.com/voldbeverages',
     youtubeUrl: 'https://youtube.com/@voldbeverages',
   },
+  security: {
+    adminPassword: 'vold', // Easy default, fully changeable in settings
+  },
 };
 
 interface CmsContextType {
@@ -118,11 +124,16 @@ interface CmsContextType {
   importJson: (jsonString: string) => boolean;
   isDashboardOpen: boolean;
   setIsDashboardOpen: (open: boolean) => void;
+  isAuthenticated: boolean;
+  login: (password: string) => boolean;
+  logout: () => void;
+  changePassword: (newPass: string) => void;
 }
 
 const CmsContext = createContext<CmsContextType | undefined>(undefined);
 
 const CMS_STORAGE_KEY = 'vold_beverages_cms_v1';
+const CMS_AUTH_KEY = 'vold_admin_authenticated';
 
 export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [cmsData, setCmsData] = useState<CmsData>(() => {
@@ -139,6 +150,10 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   });
 
   const [isDashboardOpen, setIsDashboardOpen] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false;
+    return sessionStorage.getItem(CMS_AUTH_KEY) === 'true';
+  });
 
   useEffect(() => {
     try {
@@ -147,6 +162,44 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       console.warn('Failed to save CMS data to localStorage:', e);
     }
   }, [cmsData]);
+
+  // Shortcut Ctrl + Shift + A or Cmd + Shift + A to open CMS
+  useEffect(() => {
+    const handleKey = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === 'a') {
+        e.preventDefault();
+        setIsDashboardOpen((prev) => !prev);
+      }
+    };
+    window.addEventListener('keydown', handleKey);
+    return () => window.removeEventListener('keydown', handleKey);
+  }, []);
+
+  const login = (password: string): boolean => {
+    const expected = cmsData.security?.adminPassword || 'vold';
+    if (password.trim() === expected.trim()) {
+      setIsAuthenticated(true);
+      sessionStorage.setItem(CMS_AUTH_KEY, 'true');
+      return true;
+    }
+    return false;
+  };
+
+  const logout = () => {
+    setIsAuthenticated(false);
+    sessionStorage.removeItem(CMS_AUTH_KEY);
+    setIsDashboardOpen(false);
+  };
+
+  const changePassword = (newPass: string) => {
+    updateCmsData((prev) => ({
+      ...prev,
+      security: {
+        ...prev.security,
+        adminPassword: newPass.trim(),
+      },
+    }));
+  };
 
   const updateCmsData = (newData: Partial<CmsData> | ((prev: CmsData) => CmsData)) => {
     setCmsData((prev) => {
@@ -163,7 +216,9 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const exportJson = () => {
-    const dataStr = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(cmsData, null, 2));
+    // Exclude security password from raw export for safety
+    const exportSafe = { ...cmsData };
+    const dataStr = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(exportSafe, null, 2));
     const downloadAnchor = document.createElement('a');
     downloadAnchor.setAttribute('href', dataStr);
     downloadAnchor.setAttribute('download', 'vold-website-content-backup.json');
@@ -195,6 +250,10 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         importJson,
         isDashboardOpen,
         setIsDashboardOpen,
+        isAuthenticated,
+        login,
+        logout,
+        changePassword,
       }}
     >
       {children}
